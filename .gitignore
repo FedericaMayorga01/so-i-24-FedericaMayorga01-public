@@ -31,3 +31,5 @@
 # cache
 .cache/
 
+# Prometheus folder
+/prometheus-client-c/

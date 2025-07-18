@@ -1,10 +1,13 @@
 /**
  * @file expose_metrics.h
- * @brief Programa para leer el uso de CPU y memoria y exponerlos como métricas de Prometheus.
+ * @brief Program to read CPU and memory usage and expose them as Prometheus metrics.
  */
 
+#ifndef EXPOSE_METRICS_H
+#define EXPOSE_METRICS_H
+
+#include "../include/metrics.h"
 #include "metrics.h"
-#include "read_cpu_usage.h"
 #include <errno.h>
 #include <prom.h>
 #include <promhttp.h>
@@ -12,33 +15,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> // Para sleep
+#include <unistd.h>
 
+/**
+ * @brief Buffer size used for reading data.
+ */
 #define BUFFER_SIZE 256
 
 /**
- * @brief Actualiza la métrica de uso de CPU.
+ * @brief Updates the CPU usage metric.
  */
 void update_cpu_gauge();
 
 /**
- * @brief Actualiza la métrica de uso de memoria.
+ * @brief Updates the memory usage metric.
  */
 void update_memory_gauge();
 
 /**
- * @brief Función del hilo para exponer las métricas vía HTTP en el puerto 8000.
- * @param arg Argumento no utilizado.
+ * @brief Updates the disk usage metric.
+ */
+void update_IOdisk();
+
+/**
+ * @brief Updates the network transfer rate metric.
+ */
+void update_network_transferrate();
+
+/**
+ * @brief Updates the running processes count metric.
+ */
+void update_processes_counter();
+
+/**
+ * @brief Updates the context switches count metric.
+ */
+void update_context_switchs();
+
+/**
+ * @brief Thread function to expose metrics via HTTP on port 8000.
+ * @param arg Unused argument.
  * @return NULL
  */
 void* expose_metrics(void* arg);
 
 /**
- * @brief Inicializar mutex y métricas.
+ * @brief Initialize mutex and metrics.
  */
 void init_metrics();
 
 /**
- * @brief Destructor de mutex
+ * @brief Mutex destructor.
  */
 void destroy_mutex();
+
+#endif
