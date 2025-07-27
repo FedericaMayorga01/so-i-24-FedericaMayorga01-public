@@ -4,9 +4,22 @@ description: "Executes a compilation."
 runs:
   using: "composite"
   steps:
-      - name: Compile
-        shell: bash
-        run: |
-          SRC_FOLDER=$(pwd)/src
-
-          make all
+    - name: Scripts
+      shell: bash
+      run: |
+        echo "Working directory:"
+        pwd
+        echo "Installing dependencies..."
+        chmod +x ./install.sh
+        ./install.sh
+    - name: Compile
+      shell: bash
+      run: |
+        mkdir -p build &&
+        cd build &&
+        cmake ..
+    - name: Build
+      shell: bash
+      run: |
+        cd build &&
+        make
