@@ -4,11 +4,16 @@
 /**
  * @brief Structure for external metrics that can be registered by extensions
  */
-typedef struct {
-    const char* name;           // Metric name for Prometheus
-    double (*get_value)(void);  // Function to get current value
-    const char* description;    // Help text for Prometheus
-    const char* type;          // "gauge" or "counter"
+typedef struct
+{
+    /** @brief Name of the metric */
+    const char* name;
+    /** @brief Function pointer to get the metric value */
+    double (*get_value)(void);
+    /** @brief Description of what the metric measures */
+    const char* description;
+    /** @brief Type of the metric (gauge, counter, etc.) */
+    const char* type;
 } external_metric_t;
 
 /**
