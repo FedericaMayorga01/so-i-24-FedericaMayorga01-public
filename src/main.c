@@ -30,6 +30,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    printf("🚀 Lab1 metrics server started on http://localhost:8000/metrics\n");
+    printf("📊 Updating metrics every %d second(s)...\n", SLEEP_TIME);
+
     // Main loop to update metrics every second
     while (true)
     {
@@ -39,6 +42,7 @@ int main(int argc, char* argv[])
         update_network_transferrate();
         update_processes_counter();
         update_context_switchs();
+        update_all_external_metrics();
         sleep(SLEEP_TIME);
     }
 

@@ -1,5 +1,7 @@
 #include "../include/expose_metrics.h"
 #include "../include/metrics.h"
+#include "../include/metrics_hooks.h"
+
 /** Mutex for thread synchronization */
 pthread_mutex_t lock;
 
@@ -20,6 +22,16 @@ static prom_gauge_t* processes_metric;
 
 /** Prometheus metric for the number of context switches */
 static prom_gauge_t* context_switches_metric;
+
+/** Weak variables that extensions can override */
+external_metric_t* external_metrics = NULL;
+int external_metrics_count = 0;
+
+/** Prometheus metrics for external gauge values */
+static prom_gauge_t** external_gauge_metrics = NULL;
+
+/** Prometheus metrics for external counter values */
+static prom_counter_t** external_counter_metrics = NULL;
 
 void update_cpu_gauge()
 {
@@ -219,9 +231,96 @@ void init_metrics()
     {
         fprintf(stderr, "Error registering context switches metric\n");
     }
+
+    init_external_metrics();
+
+    printf("✅ Lab1 metrics system initialized with external hooks\n");
 }
 
 void destroy_mutex()
 {
     pthread_mutex_destroy(&lock);
+}
+
+void init_external_metrics(void)
+{
+    // Call the registration hook if it exists
+    if (register_external_metrics)
+    {
+        printf("📊 Registering external metrics...\n");
+        register_external_metrics();
+    }
+
+    if (external_metrics_count == 0 || external_metrics == NULL)
+    {
+        printf("ℹ️  No external metrics registered\n");
+        return;
+    }
+
+    // Allocate arrays for dynamic metrics
+    external_gauge_metrics = calloc(external_metrics_count, sizeof(prom_gauge_t*));
+    external_counter_metrics = calloc(external_metrics_count, sizeof(prom_counter_t*));
+
+    // Create and register each external metric
+    for (int i = 0; i < external_metrics_count; i++)
+    {
+        external_metric_t* metric = &external_metrics[i];
+
+        if (strcmp(metric->type, "gauge") == 0)
+        {
+            external_gauge_metrics[i] = prom_gauge_new(metric->name, metric->description, 0, NULL);
+
+            if (external_gauge_metrics[i])
+            {
+                prom_collector_registry_must_register_metric(external_gauge_metrics[i]);
+                printf("   ✅ Registered gauge: %s\n", metric->name);
+            }
+        }
+        else if (strcmp(metric->type, "counter") == 0)
+        {
+            external_counter_metrics[i] = prom_counter_new(metric->name, metric->description, 0, NULL);
+
+            if (external_counter_metrics[i])
+            {
+                prom_collector_registry_must_register_metric(external_counter_metrics[i]);
+                printf("   ✅ Registered counter: %s\n", metric->name);
+            }
+        }
+    }
+
+    printf("📊 External metrics initialized: %d registered\n", external_metrics_count);
+}
+
+void update_all_external_metrics(void)
+{
+    // First call the update hook if it exists
+    if (update_external_metrics)
+    {
+        update_external_metrics();
+    }
+
+    if (external_metrics_count == 0 || external_metrics == NULL)
+    {
+        return;
+    }
+
+    // Update each metric with its current value
+    pthread_mutex_lock(&lock);
+
+    for (int i = 0; i < external_metrics_count; i++)
+    {
+        external_metric_t* metric = &external_metrics[i];
+        double value = metric->get_value();
+
+        if (strcmp(metric->type, "gauge") == 0 && external_gauge_metrics[i])
+        {
+            prom_gauge_set(external_gauge_metrics[i], value, NULL);
+        }
+        else if (strcmp(metric->type, "counter") == 0 && external_counter_metrics[i])
+        {
+            prom_counter_set(external_counter_metrics[i], value, NULL);
+        }
+    }
+
+    pthread_mutex_unlock(&lock);
 }

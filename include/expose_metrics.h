@@ -8,6 +8,7 @@
 
 #include "../include/metrics.h"
 #include "metrics.h"
+#include "metrics_hooks.h"
 #include <errno.h>
 #include <prom.h>
 #include <promhttp.h>
@@ -68,5 +69,15 @@ void init_metrics();
  * @brief Mutex destructor.
  */
 void destroy_mutex();
+
+/**
+ * @brief Initialize external metrics from registered extensions
+ */
+void init_external_metrics(void);
+
+/**
+ * @brief Update all external metrics
+ */
+void update_all_external_metrics(void);
 
 #endif
