@@ -2,6 +2,8 @@
 #include "../include/metrics.h"
 #include "../include/metrics_hooks.h"
 
+#define MAX_EXTERNAL_METRICS 20
+
 /** Mutex for thread synchronization */
 pthread_mutex_t lock;
 
@@ -24,8 +26,8 @@ static prom_gauge_t* processes_metric;
 static prom_gauge_t* context_switches_metric;
 
 /** Weak variables that extensions can override */
-external_metric_t* external_metrics = NULL;
-int external_metrics_count = 0;
+extern external_metric_t* external_metrics;
+extern int external_metrics_count;
 
 /** Prometheus metrics for external gauge values */
 static prom_gauge_t** external_gauge_metrics = NULL;
@@ -318,7 +320,13 @@ void update_all_external_metrics(void)
         }
         else if (strcmp(metric->type, "counter") == 0 && external_counter_metrics[i])
         {
-            prom_counter_set(external_counter_metrics[i], value, NULL);
+            static double last_counter_values[MAX_EXTERNAL_METRICS] = {0};
+            double diff = value - last_counter_values[i];
+            if (diff > 0)
+            {
+                prom_counter_add(external_counter_metrics[i], diff, NULL);
+                last_counter_values[i] = value;
+            }
         }
     }
 
