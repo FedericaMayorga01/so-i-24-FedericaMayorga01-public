@@ -26,8 +26,8 @@ static prom_gauge_t* processes_metric;
 static prom_gauge_t* context_switches_metric;
 
 /** Weak variables that extensions can override */
-extern external_metric_t* external_metrics;
-extern int external_metrics_count;
+__attribute__((weak)) external_metric_t* external_metrics = NULL;
+__attribute__((weak)) int external_metrics_count = 0;
 
 /** Prometheus metrics for external gauge values */
 static prom_gauge_t** external_gauge_metrics = NULL;
@@ -130,6 +130,8 @@ void* expose_metrics(void* arg)
 {
     (void)arg; // Argument not used
 
+    printf("Starting HTTP metrics server...\n");
+
     // Ensure the HTTP handler is attached to the default registry
     promhttp_set_active_collector_registry(NULL);
 
@@ -137,13 +139,19 @@ void* expose_metrics(void* arg)
     struct MHD_Daemon* daemon = promhttp_start_daemon(MHD_USE_SELECT_INTERNALLY, 8000, NULL, NULL);
     if (daemon == NULL)
     {
-        fprintf(stderr, "Error starting the HTTP server\n");
+        fprintf(stderr, "Error starting the HTTP server on port 8000\n");
+        fprintf(stderr, "Check if port is available: lsof -i :8000\n");
         return NULL;
     }
 
-    // Keep the server running
+    printf("HTTP server started successfully on http://localhost:8000/metrics\n");
+    printf("Starting metrics update loop...\n");
+
+    // Keep the server running and update metrics
     while (1)
     {
+        update_all_external_metrics();
+
         sleep(1);
     }
 
@@ -208,7 +216,7 @@ void init_metrics()
         fprintf(stderr, "Error creating context switches metric\n");
     }
 
-    // Register metrics
+    // Register system metrics
     if (prom_collector_registry_must_register_metric(memory_usage_metric) == NULL)
     {
         fprintf(stderr, "Error registering memory usage metric\n");
@@ -234,6 +242,7 @@ void init_metrics()
         fprintf(stderr, "Error registering context switches metric\n");
     }
 
+    // Initialize external metrics (lab3 hooks) - ÚNICA ADICIÓN
     init_external_metrics();
 
     printf("✅ Lab1 metrics system initialized with external hooks\n");
