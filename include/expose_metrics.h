@@ -71,12 +71,12 @@ void init_metrics();
 void destroy_mutex();
 
 /**
- * @brief Initialize external metrics from registered extensions
+ * @brief Initialize external metrics from registered extensions.
  */
 void init_external_metrics(void);
 
 /**
- * @brief Update all external metrics
+ * @brief Update all external metrics.
  */
 void update_all_external_metrics(void);
 

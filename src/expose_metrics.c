@@ -1,6 +1,7 @@
 #include "../include/expose_metrics.h"
 #include "../include/metrics.h"
 #include "../include/metrics_hooks.h"
+#include <stdbool.h>
 
 #define MAX_EXTERNAL_METRICS 20
 
@@ -147,11 +148,9 @@ void* expose_metrics(void* arg)
     printf("HTTP server started successfully on http://localhost:8000/metrics\n");
     printf("Starting metrics update loop...\n");
 
-    // Keep the server running and update metrics
+    // Keep the server running
     while (1)
     {
-        update_all_external_metrics();
-
         sleep(1);
     }
 
@@ -167,6 +166,10 @@ void init_metrics()
     {
         fprintf(stderr, "Error initializing mutex\n");
     }
+
+    // Auto-detect if we need to create HTTP server
+    // Check if we're running as shell-extended (has lab3 code)
+    bool is_shell_extended = (external_metrics != NULL || register_external_metrics != NULL);
 
     // Initialize the Prometheus collector registry
     if (prom_collector_registry_default_init() != 0)
@@ -242,8 +245,23 @@ void init_metrics()
         fprintf(stderr, "Error registering context switches metric\n");
     }
 
-    // Initialize external metrics (lab3 hooks) - ÚNICA ADICIÓN
+    // Initialize external metrics (lab3 hooks)
     init_external_metrics();
+
+    // Auto-create HTTP server ONLY for shell-extended
+    if (is_shell_extended && external_metrics_count > 0)
+    {
+        pthread_t metrics_thread;
+        if (pthread_create(&metrics_thread, NULL, expose_metrics, NULL) != 0)
+        {
+            fprintf(stderr, "Error creating HTTP server thread\n");
+        }
+        else
+        {
+            printf("🚀 HTTP metrics thread created for shell-extended\n");
+            pthread_detach(metrics_thread);
+        }
+    }
 
     printf("✅ Lab1 metrics system initialized with external hooks\n");
 }
